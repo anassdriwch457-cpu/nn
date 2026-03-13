@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-prism-bg text-slate-100 antialiased;
+  font-family: Inter, "Segoe UI", Roboto, sans-serif;
+}
+
+a {
+  @apply transition-colors;
+}
