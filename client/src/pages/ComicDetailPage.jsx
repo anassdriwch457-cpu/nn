@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Lock } from "lucide-react";
+import { ChevronRight, Crown, Lock, PlayCircle, Sparkles } from "lucide-react";
 import { api } from "../api";
 import { UnlockChapterModal } from "../components/UnlockChapterModal";
 import { useAuth } from "../context/AuthContext";
@@ -14,15 +14,19 @@ export const ComicDetailPage = () => {
   const [selectedChapter, setSelectedChapter] = useState(null);
   const [unlocking, setUnlocking] = useState(false);
 
-  const fetchComic = () => api.get(`/comics/${comicId}`).then((res) => setComic(res.data));
+  const fetchComic = useCallback(() => api.get(`/comics/${comicId}`).then((res) => setComic(res.data)), [comicId]);
 
   useEffect(() => {
     fetchComic();
-  }, [comicId]);
+  }, [fetchComic]);
 
   const sortedChapters = useMemo(
     () => (comic?.chapters ? [...comic.chapters].sort((a, b) => a.chapter_number - b.chapter_number) : []),
     [comic]
+  );
+  const firstReadableChapter = useMemo(
+    () => sortedChapters.find((chapter) => !chapter.locked),
+    [sortedChapters]
   );
 
   const onUnlockChapter = async () => {
@@ -48,45 +52,112 @@ export const ComicDetailPage = () => {
   return (
     <>
       <Helmet>
-        <title>{comic.title} | PrismYaoi</title>
+        <title>{comic.title} | Obsidian Series</title>
         <meta name="description" content={comic.description} />
         <meta name="keywords" content={(comic.tags || []).join(",")} />
       </Helmet>
 
-      <div className="grid gap-8 md:grid-cols-[300px_1fr]">
-        <aside className="space-y-4">
-          <img src={comic.cover_image} alt={comic.title} className="w-full rounded-2xl border border-slate-700 object-cover" />
-          <div className="rounded-xl border border-slate-700 bg-slate-900/70 p-4">
-            <p className="text-sm text-slate-300">Status</p>
-            <p className="font-semibold">{comic.status}</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {(comic.tags || []).map((tag) => (
-                <span key={tag} className="rounded-full bg-slate-800 px-2 py-1 text-xs text-fuchsia-200">
-                  #{tag}
-                </span>
-              ))}
+      <section className="space-y-7">
+        <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-obsidian-900/65 p-5 shadow-card-soft backdrop-blur-xl md:p-7">
+          <img
+            src={comic.cover_image}
+            alt={comic.title}
+            className="absolute inset-0 h-full w-full scale-110 object-cover opacity-20 blur-3xl"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-obsidian-950 via-obsidian-950/92 to-obsidian-900/55" />
+          <div className="relative z-10 grid gap-6 md:grid-cols-[260px_1fr]">
+            <aside className="space-y-4 md:sticky md:top-24 md:self-start">
+              <div className="group relative overflow-hidden rounded-3xl border border-white/[0.1] bg-obsidian-900/90 shadow-card-soft">
+                <img
+                  src={comic.cover_image}
+                  alt={comic.title}
+                  className="h-[360px] w-full object-cover transition-all duration-300 ease-in-out group-hover:scale-105"
+                />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-obsidian-950/85 via-transparent to-transparent" />
+              </div>
+              <div className="glass-panel rounded-2xl p-4">
+                <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Status</p>
+                <p className="mt-1 font-display text-lg font-semibold text-slate-50">{comic.status}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {(comic.tags || []).map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-1 text-xs text-premium-iris"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </aside>
+
+            <article className="space-y-6">
+              <div className="space-y-3">
+                <p className="text-xs uppercase tracking-[0.28em] text-premium-gold/80">Series Profile</p>
+                <h1 className="text-balance font-serif text-4xl font-semibold leading-tight text-white md:text-5xl">
+                  {comic.title}
+                </h1>
+                <p className="max-w-3xl text-base leading-relaxed text-slate-300 md:text-lg">{comic.description}</p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                {firstReadableChapter ? (
+                  <Link
+                    to={`/comics/${comicId}/read/${firstReadableChapter.chapter_ref}`}
+                    className="btn-press inline-flex items-center gap-2 rounded-full bg-premium-sheen px-5 py-2.5 text-sm font-semibold text-obsidian-950 shadow-glow-violet"
+                  >
+                    <PlayCircle size={16} />
+                    Start Reading
+                  </Link>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const firstLocked = sortedChapters.find((chapter) => chapter.locked);
+                    if (!firstLocked) return;
+                    if (!user) {
+                      navigate("/login");
+                      return;
+                    }
+                    setSelectedChapter(firstLocked);
+                  }}
+                  className="btn-press inline-flex items-center gap-2 rounded-full border border-premium-gold/40 bg-premium-gold/10 px-5 py-2.5 text-sm font-semibold text-premium-gold hover:bg-premium-gold/15"
+                >
+                  <Crown size={16} />
+                  Premium Unlock
+                </button>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <div className="glass-panel overflow-hidden rounded-3xl">
+          <div className="flex items-center justify-between border-b border-white/[0.08] px-4 py-4 md:px-6">
+            <div>
+              <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Episodes</p>
+              <h2 className="font-display text-xl font-semibold text-slate-50">Chapter Playlist</h2>
+            </div>
+            <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.02] px-3 py-1 text-xs text-slate-300">
+              <Sparkles size={14} className="text-premium-gold" />
+              Binge Mode
             </div>
           </div>
-        </aside>
-
-        <section>
-          <h1 className="mb-3 text-3xl font-black">{comic.title}</h1>
-          <p className="mb-6 text-slate-200">{comic.description}</p>
-
-          <div className="rounded-2xl border border-slate-700 bg-slate-900/60">
-            <div className="border-b border-slate-700 px-4 py-3 font-semibold">Chapters</div>
-            <ul>
-              {sortedChapters.map((chapter) => (
+          <ul className="divide-y divide-white/[0.05]">
+            {sortedChapters.length ? (
+              sortedChapters.map((chapter) => (
                 <li
                   key={chapter.chapter_ref}
-                  className="flex items-center justify-between gap-4 border-b border-slate-800 px-4 py-3 last:border-b-0"
+                  className="group relative flex flex-wrap items-center justify-between gap-4 px-4 py-4 transition-all duration-300 ease-in-out hover:bg-white/[0.02] md:px-6"
                 >
                   <div>
-                    <p className="font-medium">
+                    <p className="font-medium text-slate-100">
                       Chapter {chapter.chapter_number}: {chapter.title}
                     </p>
                     {chapter.is_premium && (
-                      <p className="text-sm text-fuchsia-300">Premium · {chapter.price_in_coins} coins</p>
+                      <p className="mt-1 inline-flex items-center gap-1 text-sm text-premium-gold">
+                        <Crown size={14} />
+                        Premium · {chapter.price_in_coins} coins
+                      </p>
                     )}
                   </div>
 
@@ -100,25 +171,28 @@ export const ComicDetailPage = () => {
                         }
                         setSelectedChapter(chapter);
                       }}
-                      className="flex items-center gap-2 rounded-full border border-fuchsia-400/50 px-4 py-2 text-sm"
+                      className="btn-press premium-border flex items-center gap-2 rounded-full bg-obsidian-900 px-4 py-2 text-sm font-semibold text-premium-gold transition-all duration-300 ease-in-out hover:bg-obsidian-850"
                     >
                       <Lock size={16} />
-                      Unlock
+                      Unlock with {chapter.price_in_coins}
                     </button>
                   ) : (
                     <Link
                       to={`/comics/${comicId}/read/${chapter.chapter_ref}`}
-                      className="rounded-full bg-prism-neon px-4 py-2 text-sm font-semibold text-slate-900"
+                      className="btn-press inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-slate-100 hover:border-premium-iris/40 hover:text-white"
                     >
                       Read
+                      <ChevronRight size={16} className="transition-transform duration-300 ease-in-out group-hover:translate-x-0.5" />
                     </Link>
                   )}
                 </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-      </div>
+              ))
+            ) : (
+              <li className="px-6 py-8 text-center text-slate-400">No chapters yet.</li>
+            )}
+          </ul>
+        </div>
+      </section>
 
       <UnlockChapterModal
         chapter={selectedChapter}
