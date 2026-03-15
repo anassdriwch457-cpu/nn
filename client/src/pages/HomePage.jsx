@@ -32,9 +32,9 @@ export const HomePage = () => {
       <div className="space-y-10">
         <HeroSlider comics={featured} />
 
-        <section>
+        <section id="library">
           <h2 className="mb-4 text-2xl font-bold">
-            <span className="bg-prism-neon bg-clip-text text-transparent">Trending Now</span>
+            <span className="bg-premium-sheen bg-clip-text text-transparent">Trending Now</span>
           </h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {trending.map((comic) => (
@@ -43,8 +43,8 @@ export const HomePage = () => {
           </div>
         </section>
 
-        <section>
-          <h2 className="mb-4 text-2xl font-bold text-cyan-300">New Releases</h2>
+        <section id="search">
+          <h2 className="mb-4 text-2xl font-bold text-premium-iris">New Releases</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {newReleases.map((comic) => (
               <ComicCard key={comic._id} comic={comic} />
